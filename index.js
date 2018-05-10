@@ -3,6 +3,48 @@ if (!HTMLVideoElement.prototype.requestPictureInPicture) {
     HTMLVideoElement.prototype.webkitSupportsPresentationMode &&
     typeof HTMLVideoElement.prototype.webkitSetPresentationMode === "function"
   ) {
+    // polyfill document.pictureInPictureElement
+    const updatePictureInPictureElementInDocument = function() {
+      if (this.webkitPresentationMode && this.webkitPresentationMode !== "picture-in-picture") {
+        document.pictureInPictureElement = null;
+      }
+    }
+
+    Object.defineProperty(document, 'pictureInPictureElement', {
+      get: function() {
+        if (!this.$pictureInPictureElement) {
+          document.querySelectorAll('video').forEach(video => {
+            if (video.webkitPresentationMode && video.webkitPresentationMode === "picture-in-picture") {
+              this.pictureInPictureElement = video;
+              return true;
+            }
+          })
+        }
+
+        return this.$pictureInPictureElement || null;
+      },
+
+      set: function(value) {
+        if (this.$pictureInPictureElement) {
+          this.$pictureInPictureElement.removeEventListener(
+            'webkitpresentationmodechanged',
+            updatePictureInPictureElementInDocument
+          )
+        }
+
+        this.$pictureInPictureElement = value;
+
+        if (value) {
+          this.$pictureInPictureElement.addEventListener(
+            'webkitpresentationmodechanged',
+            updatePictureInPictureElementInDocument
+          )
+        }
+      }
+    });
+
+    // polyfill methods and attributes
+
     HTMLVideoElement.prototype.requestPictureInPicture = async function() {
       // check if PIP is enabled
       if (
@@ -14,18 +56,12 @@ if (!HTMLVideoElement.prototype.requestPictureInPicture) {
 
       // enter PIP mode
       this.webkitSetPresentationMode("picture-in-picture");
-
-      // polyfill pictureInPictureElement
-      document.pictureInPictureElement = this;
     };
 
     document.exitPictureInPicture = async function() {
       if (document.pictureInPictureElement) {
         // exit PIP mode
         document.pictureInPictureElement.webkitSetPresentationMode("inline");
-
-        // clear pictureInPictureElement
-        delete document.pictureInPictureElement;
       } else {
         throw new DOMException(
           "No picture in picture element found",
@@ -35,54 +71,67 @@ if (!HTMLVideoElement.prototype.requestPictureInPicture) {
     };
 
     // polyfill events
+
     const oldAddEventListener = HTMLVideoElement.prototype.addEventListener;
     HTMLVideoElement.prototype.addEventListener = function(name, callback) {
       if (name === "enterpictureinpicture") {
-        this.addEventListener(
-          "webkitpresentationmodechanged",
-          function listener() {
-            if (this.webkitPresentationMode === "picture-in-picture") {
-              if (this.$pipPolyfillEnter) {
-                this.$pipPolyfillEnter[callback] = listener;
-              } else {
-                this.$pipPolyfillEnter = {
-                  [callback]: listener
-                };
-              }
-              callback();
-            }
+        function webkitListener() {
+          if (this.webkitPresentationMode === "picture-in-picture") {
+            callback();
           }
-        );
+        }
+
+        this.addEventListener("webkitpresentationmodechanged", webkitListener);
+
+        // keep track of the listener to be able to remove them later
+        if (this.$pipPolyfillEnter) {
+          this.$pipPolyfillEnter[callback] = webkitListener;
+        } else {
+          this.$pipPolyfillEnter = {
+            [callback]: webkitListener
+          };
+        }
       } else if (name === "leavepictureinpicture") {
-        this.addEventListener(
-          "webkitpresentationmodechanged",
-          function listener() {
-            if (this.webkitPresentationMode !== "picture-in-picture") {
-              if (this.$pipPolyfillLeave) {
-                this.$pipPolyfillLeave[callback] = listener;
-              } else {
-                this.$pipPolyfillLeave = {
-                  [callback]: listener
-                };
-              }
-              callback();
-            }
+        function webkitListener() {
+          if (this.webkitPresentationMode !== "picture-in-picture") {
+            if (document.pictureInPictureElement === this) callback()
+          } else {
+            // keep track of the pipElement
+            document.pictureInPictureElement = this;
           }
-        );
+        }
+
+        this.addEventListener("webkitpresentationmodechanged", webkitListener);
+
+        if (this.webkitPresentationMode === "picture-in-picture") {
+          // As we use document.pictureInPictureElement in the listener
+          // we need update pictureInPictureElement if necessary
+          document.pictureInPictureElement = this;
+        }
+
+        // keep track of the listener to be able to remove them later
+        if (this.$pipPolyfillLeave) {
+          this.$pipPolyfillLeave[callback] = webkitListener;
+        } else {
+          this.$pipPolyfillLeave = {
+            [callback]: webkitListener
+          };
+        }
       } else {
+        // fallback for all the other events
         oldAddEventListener.apply(this, arguments);
       }
     };
 
     const oldRemoveEventListener = HTMLVideoElement.prototype.removeEventListener;
     HTMLVideoElement.prototype.removeEventListener = function(name, callback) {
-      if (name === "enterpictureinpicture") {
+      if (name === "enterpictureinpicture" && this.$pipPolyfillEnter) {
         this.removeEventListener(
           "webkitpresentationmodechanged",
           this.$pipPolyfillEnter[callback]
         );
         delete this.$pipPolyfillEnter[callback];
-      } else if (name === "leavepictureinpicture") {
+      } else if (name === "leavepictureinpicture" && this.$pipPolyfillLeave) {
         this.removeEventListener(
           "webkitpresentationmodechanged",
           this.$pipPolyfillLeave[callback]
