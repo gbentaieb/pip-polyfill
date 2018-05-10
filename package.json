@@ -1,0 +1,36 @@
+{
+  "name": "pip-polyfill",
+  "version": "1.0.0",
+  "description": "Use standard W3C PIP API on Safari",
+  "main": "pip.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "http-server": "^0.11.1",
+    "mocha": "^5.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "server": "http-server -p 8080",
+    "test": "echo 'Browse http://localhost:8080/test' && http-server",
+    "demo": "echo 'Browse http://localhost:8080/demo' && http-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gbentaieb/pip-polyfill.git"
+  },
+  "keywords": [
+    "picture",
+    "pip",
+    "picture",
+    "in",
+    "picture"
+  ],
+  "author": "Guillaume Bentaieb",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gbentaieb/pip-polyfill/issues"
+  },
+  "homepage": "https://github.com/gbentaieb/pip-polyfill#readme"
+}
