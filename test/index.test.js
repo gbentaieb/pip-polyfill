@@ -1,10 +1,24 @@
-const videoElement = document.getElementById('videoElement')
+const hasWebkitApi = (
+  HTMLVideoElement.prototype.webkitSupportsPresentationMode &&
+  typeof HTMLVideoElement.prototype.webkitSetPresentationMode === "function"
+);
+const hasStandardApi = (
+  HTMLVideoElement.prototype.requestPictureInPicture &&
+  document.exitPictureInPicture
+);
 
-describe('test', function () {
+const videoElement = document.getElementById('videoElement');
+
+const stdDescribe = hasStandardApi ? describe : describe.it;
+const wbkIt = hasWebkitApi ? it : it.skip;
+
+stdDescribe('test', function () {
   afterEach(async () => {
     videoElement.removeAttribute('disablePictureInPicture');
 
-    if (document.pictureInPictureElement) {
+    if (hasWebkitApi) {
+      videoElement.webkitSetPresentationMode('inline');
+    } else if (document.pictureInPictureElement) {
       await document.exitPictureInPicture();
       document.pictureInPictureElement = undefined;
     }
@@ -30,7 +44,7 @@ describe('test', function () {
       chai.expect(document.pictureInPictureElement).to.equal(videoElement);
     })
 
-    it('should set document.pictureInPictureElement correctly using native API', () => {
+    wbkIt('should set document.pictureInPictureElement correctly using webkit API', () => {
       videoElement.webkitSetPresentationMode('picture-in-picture');
       chai.expect(document.pictureInPictureElement).to.equal(videoElement);
     })
@@ -41,7 +55,7 @@ describe('test', function () {
       chai.expect(!!document.pictureInPictureElement).to.be.false;
     })
 
-    it('should clear document.pictureInPictureElement correctly using native API', () => {
+    wbkIt('should clear document.pictureInPictureElement correctly using webkit API', () => {
       videoElement.webkitSetPresentationMode('picture-in-picture');
       videoElement.webkitSetPresentationMode('inline');
       chai.expect(!!document.pictureInPictureElement).to.be.false;
@@ -58,7 +72,7 @@ describe('test', function () {
       let error;
 
       try {
-        video.setAttribute('disablePictureInPicture', true);
+        videoElement.setAttribute('disablePictureInPicture', true);
         await videoElement.requestPictureInPicture();
       } catch (e) {
         error = e;
@@ -89,104 +103,154 @@ describe('test', function () {
         error = e;
       }
 
-      chai.expect(e).to.not.be.undefined;
+      chai.expect(error).to.not.be.undefined;
     })
   });
 
   describe('enterpictureinpicture event API', () => {
-    let called;
-    const eventListener = () => { called = true };
+    let eventListener;
 
     afterEach(() => {
-      called = false;
       videoElement.removeEventListener('enterpictureinpicture', eventListener);
+      eventListener = null;
     })
 
-    it('should trigger enterpictureinpicture event when native PIP is used', () => {
+    wbkIt('should trigger enterpictureinpicture event when webkit PIP is used', (done) => {
+      eventListener = () => { done() };
       videoElement.addEventListener('enterpictureinpicture', eventListener);
-      video.webkitSetPresentationMode('picture-in-picture');
-
-      chai.expect(called).to.be.true;
+      videoElement.webkitSetPresentationMode('picture-in-picture');
     })
 
-    it('should trigger enterpictureinpicture event when standard PIP is used', async () => {
+    it('should trigger enterpictureinpicture event when standard PIP is used', (done) => {
+      eventListener = () => { done() };
       videoElement.addEventListener('enterpictureinpicture', eventListener);
-      await videoElement.requestPictureInPicture();
-
-      chai.expect(called).to.be.true;
+      videoElement.requestPictureInPicture();
     })
 
-    it('should not trigger enterpictureinpicture when native exit PIP is used', async () => {
-      video.webkitSetPresentationMode('picture-in-picture');
-      videoElement.addEventListener('enterpictureinpicture', eventListener);
-      video.webkitSetPresentationMode('inline');
+    wbkIt('should not trigger enterpictureinpicture when webkit exit PIP is used', (done) => {
+      setTimeout(done, 1000);
 
-      chai.expect(called).to.be.false;
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.webkitSetPresentationMode('picture-in-picture');
+      videoElement.addEventListener('enterpictureinpicture', eventListener);
+      videoElement.webkitSetPresentationMode('inline');
     })
 
-    it('should not trigger enterpictureinpicture when standard exit PIP is used', async () => {
-      video.webkitSetPresentationMode('picture-in-picture');
-      videoElement.addEventListener('enterpictureinpicture', eventListener);
-      await document.exitPictureInPicture();
+    it('should not trigger enterpictureinpicture when standard exit PIP is used', (done) => {
+      setTimeout(done, 1000);
 
-      chai.expect(called).to.be.false;
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.requestPictureInPicture().then(() => {
+        videoElement.addEventListener('enterpictureinpicture', eventListener);
+        document.exitPictureInPicture();
+      });
     })
   });
 
   describe('leavepictureinpicture event API', () => {
-    it('should trigger leavepictureinpicture when native exit PIP is used', async () => {
-      // TODO
+    let eventListener ;
+
+    afterEach(() => {
+      videoElement.removeEventListener('leavepictureinpicture', eventListener);
+      eventListener = null;
     })
 
-    it('should trigger leavepictureinpicture when standard exit PIP is used', async () => {
-      // TODO
+    wbkIt('should trigger leavepictureinpicture when webkit exit PIP is used', (done) => {
+      eventListener = () => { done() };
+      videoElement.requestPictureInPicture().then(() => {
+        videoElement.addEventListener('leavepictureinpicture', eventListener);
+        videoElement.webkitSetPresentationMode('inline');
+      });
     })
 
-    it('should not trigger leavepictureinpicture when natively entering PIP', async () => {
-      // TODO
+    it('should trigger leavepictureinpicture when standard exit PIP is used', (done) => {
+      eventListener = () => { done() };
+      videoElement.requestPictureInPicture().then(() => {
+        videoElement.addEventListener('leavepictureinpicture', eventListener);
+        document.exitPictureInPicture();
+      });
     })
 
-    it('should not trigger leavepictureinpicture when standardly entering PIP', async () => {
-      // TODO
+    wbkIt('should not trigger leavepictureinpicture when webkitly entering PIP', (done) => {
+      setTimeout(done, 1000);
+
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.addEventListener('leavepictureinpicture', eventListener);
+      videoElement.webkitSetPresentationMode('picture-in-picture');
     })
 
-    it('should not trigger leavepictureinpicture when entering webkit fullscreen', async () => {
-      // TODO
-    })
+    it('should not trigger leavepictureinpicture when standardly entering PIP', (done) => {
+      setTimeout(done, 1000);
 
-    it('should trigger leavepictureinpicture when addEventListener called after going PIP with native api', async () => {
-      // TODO
-    })
-
-    it('should trigger leavepictureinpicture when addEventListener called after going PIP with standard api', async () => {
-      // TODO
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.addEventListener('leavepictureinpicture', eventListener);
+      videoElement.requestPictureInPicture();
     })
   });
 
-  describe('Other APIs preservation', () => {
-    it('should trigger any other listener correctly', async () => {
-      // TODO
+  describe('Other API events preservation', () => {
+    let eventListener;
+
+    afterEach(async () => {
+      videoElement.removeEventListener('pause', eventListener);
+      eventListener = undefined;
+      await videoElement.play();
+    })
+
+    it('should trigger any other listener correctly', (done) => {
+      eventListener = () => { done() };
+      videoElement.addEventListener('pause', eventListener);
+      videoElement.pause();
     })
   });
 
   describe('Remove Event listener for the new API', () => {
-    it('should remove enterpictureinpicture listener correctly', async () => {
-      // TODO
+    let eventListener;
+
+    afterEach(async () => {
+      videoElement.removeEventListener('enterpictureinpicture', eventListener);
+      videoElement.removeEventListener('leavepictureinpicture', eventListener);
+      videoElement.removeEventListener('pause', eventListener);
+      eventListener = undefined;
+      await videoElement.play();
     })
 
-    it('should remove leavepictureinpicture listener correctly', async () => {
-      // TODO
+    it('should remove enterpictureinpicture listener correctly', (done) => {
+      setTimeout(done, 1000);
+
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.addEventListener('enterpictureinpicture', eventListener);
+      videoElement.removeEventListener('enterpictureinpicture', eventListener);
+      videoElement.requestPictureInPicture();
     })
 
-    it('should remove any other listener correctly', async () => {
-      // TODO
+    it('should remove leavepictureinpicture listener correctly', (done) => {
+      setTimeout(done, 1000);
+
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.addEventListener('leavepictureinpicture', eventListener);
+      videoElement.removeEventListener('leavepictureinpicture', eventListener);
+      videoElement.requestPictureInPicture().then(() => {
+        document.exitPictureInPicture();
+      });
+    })
+
+    it('should remove any other listener correctly', (done) => {
+      setTimeout(done, 1000);
+
+      eventListener = () => { throw new Error('Event Called!') };
+      videoElement.addEventListener('pause', eventListener);
+      videoElement.removeEventListener('pause', eventListener);
+      videoElement.pause();
     })
   });
   
   describe('Other API behavior', () => {
-    it('should exit PIP when setting disablePictureInPicture to true', async () => {
-      // TODO
+    it.skip('should exit PIP when setting disablePictureInPicture to true', async () => {
+      await videoElement.requestPictureInPicture();
+      videoElement.setAttribute('disablePictureInPicture', true);
+
+      chai.expect(!!document.pictureInPictureElement).to.be.false
     })
   });
-
 });
