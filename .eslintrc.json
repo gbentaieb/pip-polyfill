@@ -1,0 +1,12 @@
+{
+    "extends": "airbnb-base",
+    "globals": {
+        "HTMLVideoElement": true,
+        "document": true,
+        "it": true,
+        "describe": true,
+        "afterEach": true,
+        "chai": true,
+        "DOMException": true
+    }
+}
