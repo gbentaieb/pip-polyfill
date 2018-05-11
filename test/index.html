@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <title>Mocha Tests</title>
   <link href="https://unpkg.com/mocha@4.0.1/mocha.css" rel="stylesheet" />
+  <style>
+  #mocha-stats {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 3px !important;
+  }
+  </style>
 </head>
 
 <body>
@@ -23,8 +29,12 @@
 
   <script>
     window.startTesting = function() {
-      document.getElementById('videoElement').style.display = 'inline';
+      const video = document.getElementById('videoElement');
+      video.play();
+
+      video.style.display = 'inline';
       document.getElementById('startButton').style.display = 'none';
+
       mocha.checkLeaks();
       mocha.run();
     }

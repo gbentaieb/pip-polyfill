@@ -13,12 +13,12 @@ if (!HTMLVideoElement.prototype.requestPictureInPicture) {
     Object.defineProperty(document, 'pictureInPictureElement', {
       get: function() {
         if (!this.$pictureInPictureElement) {
-          document.querySelectorAll('video').forEach(video => {
+          for (const video of document.querySelectorAll('video')) {
             if (video.webkitPresentationMode && video.webkitPresentationMode === "picture-in-picture") {
               this.pictureInPictureElement = video;
-              return true;
+              break;
             }
-          })
+          }
         }
 
         return this.$pictureInPictureElement || null;
@@ -62,6 +62,7 @@ if (!HTMLVideoElement.prototype.requestPictureInPicture) {
       if (document.pictureInPictureElement) {
         // exit PIP mode
         document.pictureInPictureElement.webkitSetPresentationMode("inline");
+        document.pictureInPictureElement = null;
       } else {
         throw new DOMException(
           "No picture in picture element found",
