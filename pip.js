@@ -161,6 +161,11 @@ if (
         oldRemoveEventListener.apply(this, args);
       }
     };
+
+    /**
+     * Complete PIP Api
+     */
+    document.pictureInPictureEnabled = true;
   } else {
     HTMLVideoElement.prototype.requestPictureInPicture = async function _() {
       throw new DOMException('PIP not supported', 'NotSupportedError');
