@@ -1,4 +1,5 @@
 # pip-polyfill
+[![tests status](https://img.shields.io/badge/tests-100%25-brightgreen.svg)](https://gbentaieb.github.io/pip-polyfill/test/)
 
 ## Why a picture in picture polyfill
 The w3c has described a standard API that should be implemented by every browser willing to add picture-in-picture (pip) features on the video element. However, **Safari has to this date implemented an other api**, making it difficult for web developers to develop and maintain pip features on their website.
