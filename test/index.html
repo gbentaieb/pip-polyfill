@@ -15,6 +15,7 @@
 <body>
   <div style="margin-top: 100px; width: 100%; text-align: center;">
     <button id='startButton' onclick="window.startTesting()">Start Testing</button>
+    <p id='notSafariWarning' style='display:none;'>The polyfill tests should be run on safari</p>
     <video id='videoElement' muted autoplay controls src ='../assets/video.mp4' style="width:40%; display:none;"></video>
   </div>
   <div id="mocha"></div>
@@ -29,14 +30,20 @@
 
   <script>
     window.startTesting = function() {
-      const video = document.getElementById('videoElement');
-      video.play();
-
-      video.style.display = 'inline';
       document.getElementById('startButton').style.display = 'none';
 
-      mocha.checkLeaks();
-      mocha.run();
+      if (!HTMLVideoElement.prototype.webkitSupportsPresentationMode) {
+        // The tests are supposed to be run on Safari
+        document.getElementById('notSafariWarning').style.display = 'block';
+      } else {
+        const video = document.getElementById('videoElement');
+        video.play();
+
+        video.style.display = 'inline';
+
+        mocha.checkLeaks();
+        mocha.run();
+      }
     }
   </script>
 </body>
