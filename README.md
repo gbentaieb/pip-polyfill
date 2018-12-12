@@ -5,8 +5,8 @@ The w3c has described a standard API that should be implemented by every browser
 
 We therefore want to provide a polyfill that will add the w3c pip API to safari.
 
-## How do I use it
-The polyfill is a ~100 lines single file, that you can find [here](https://github.com/gbentaieb/pip-polyfill/blob/master/pip.js). Fill free to use this in your own code !
+## How do I use it ?
+The polyfill is a ~100 lines single file, that you can find [here](https://github.com/gbentaieb/pip-polyfill/blob/master/pip.js). Feel free to use this in your own code !
 
 ## Tests
 The polyfill is fully tested.
